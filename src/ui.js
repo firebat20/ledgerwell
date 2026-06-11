@@ -15,6 +15,7 @@ function render() {
   if (view.type === "dashboard") m.innerHTML = viewDashboard();
   else if (view.type === "account") m.innerHTML = viewAccount(getAccount(view.id));
   else if (view.type === "categories") m.innerHTML = viewCategories();
+  else if (view.type === "investments") m.innerHTML = viewInvestments();
   else if (view.type === "journal") m.innerHTML = viewJournal();
   else m.innerHTML = viewDashboard();
   // restore entry-form action visibility if present
@@ -49,10 +50,12 @@ function renderSidebar() {
     <div class="navsec">
       ${ni("dashboard", "▦", "Dashboard")}
       ${ni("categories", "☰", "Categories")}
+      ${ni("investments", "↗", "Investments")}
       ${ni("journal", "⇄", "Journal")}
     </div>
     ${acctHtml}
     <button class="addbtn" onclick="openAddAccount()">+ Add account</button>
+    <button class="addbtn" onclick="openImport()">⇩ Import CSV</button>
     <div class="sidefoot">
       ${STORAGE_MODE === "memory" ? "In-memory session only — changes will not persist." : (STORAGE_MODE === "artifact" ? "Saved automatically to this device." : "Saved automatically in this browser.")}
       <br><button onclick="resetDemo()">Reset to demo data</button>
