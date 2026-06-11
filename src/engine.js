@@ -301,13 +301,29 @@ function targetLabel(t, selfKey) {
 
 /* ---------- save / load ---------- */
 let saveTimer = null;
+/* one canonical serializer, shared by save() and the export feature */
+function serializeState() {
+  return {
+    accounts: state.accounts,
+    categories: state.categories,
+    securities: state.securities,
+    transactions: state.transactions.map(stripDerived),
+    seq: state.seq,
+  };
+}
 function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    storeSet(KEY, JSON.stringify(serializeState()));
+  }, 200);
+}
+/* function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     const clean = { accounts: state.accounts, categories: state.categories, securities: state.securities, transactions: state.transactions.map(stripDerived), seq: state.seq };
     storeSet(KEY, JSON.stringify(clean));
   }, 200);
-}
+} */
 function stripDerived(t) {
   const c = { ...t };
   if (c.inv) { c.inv = { ...c.inv }; delete c.inv._cost; delete c.inv._proceeds; delete c.inv._costRelieved; delete c.inv._gain;

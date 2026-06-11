@@ -58,6 +58,7 @@ function renderSidebar() {
     <button class="addbtn" onclick="openImport()">⇩ Import CSV</button>
     <div class="sidefoot">
       ${STORAGE_MODE === "memory" ? "In-memory session only — changes will not persist." : (STORAGE_MODE === "artifact" ? "Saved automatically to this device." : "Saved automatically in this browser.")}
+      <br><button onclick="exportData()">Export data</button> · <button onclick="openImportData()">Import data</button>
       <br><button onclick="resetDemo()">Reset to demo data</button>
     </div>`;
 }
