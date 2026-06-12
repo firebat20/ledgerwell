@@ -23,9 +23,12 @@
 <script src="src/investments.js"></script>
 <script src="src/import.js"></script>
 <script src="src/backup.js"></script>
+<script src="src/price-provider.js"></script>
+<script src="src/price-store.js"></script>
 <script>
   (async function init() {
     await load();
+    try { await hydratePricesFromStore(); } catch (e) { console.error(e); }
     render();
   })();
 </script>

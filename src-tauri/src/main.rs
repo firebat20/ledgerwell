@@ -3,6 +3,7 @@
 
 use std::fs;
 use tauri::{AppHandle, Manager};
+use tauri_plugin_sql::{Migration, MigrationKind};
 
 #[tauri::command]
 async fn get_ledger(app: AppHandle) -> Result<Option<String>, String> {
@@ -26,10 +27,6 @@ async fn set_ledger(app: AppHandle, content: String) -> Result<(), String> {
     path.push("ledger.json");
 
     // Atomic write: write to a sibling temp file, then rename over the target.
-    // A rename within the same directory is atomic on Windows, macOS, and Linux,
-    // so a concurrent/next reader never observes a truncated or partial file.
-    // (Plain fs::write truncates-then-writes, leaving a corrupt file if the
-    // process dies mid-write — which then trips the reseed/clobber path on load.)
     let mut tmp = dir;
     tmp.push("ledger.json.tmp");
 
@@ -37,7 +34,6 @@ async fn set_ledger(app: AppHandle, content: String) -> Result<(), String> {
     match fs::rename(&tmp, &path) {
         Ok(()) => Ok(()),
         Err(e) => {
-            // Best-effort cleanup so a failed rename doesn't leave a stray temp file.
             let _ = fs::remove_file(&tmp);
             Err(e.to_string())
         }
@@ -45,7 +41,32 @@ async fn set_ledger(app: AppHandle, content: String) -> Result<(), String> {
 }
 
 fn main() {
+    // One row per security per trading day; price_meta drives incremental fetches.
+    let migrations = vec![Migration {
+        version: 1,
+        description: "create_price_tables",
+        sql: "CREATE TABLE IF NOT EXISTS prices (\
+                ticker TEXT NOT NULL, \
+                date   TEXT NOT NULL, \
+                close  REAL NOT NULL, \
+                open REAL, high REAL, low REAL, volume INTEGER, \
+                PRIMARY KEY (ticker, date)\
+              );\
+              CREATE INDEX IF NOT EXISTS idx_prices_ticker_date ON prices(ticker, date);\
+              CREATE TABLE IF NOT EXISTS price_meta (\
+                ticker       TEXT PRIMARY KEY, \
+                last_date    TEXT, \
+                last_fetched TEXT\
+              );",
+        kind: MigrationKind::Up,
+    }];
+
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_sql::Builder::default()
+                .add_migrations("sqlite:LedgerWell.db", migrations)
+                .build(),
+        )
         .invoke_handler(tauri::generate_handler![get_ledger, set_ledger])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

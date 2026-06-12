@@ -25,6 +25,7 @@ function render() {
   m.innerHTML = loadErrorBanner() + html;
   // restore entry-form action visibility if present
   const sel = $("inv-action"); if (sel) onInvAction();
+  if (view.type === "investments" && typeof drawInvestmentSparklines === "function") drawInvestmentSparklines();
 }
 
 /* ---------- load-error banner ---------- */
@@ -493,7 +494,11 @@ function submitInv(accId) {
 
 function updatePrice(secId, val) {
   const s = getSecurity(secId); const p = parseFloat(val);
-  if (s && !isNaN(p) && p >= 0) { s.price = cents(p); s.priceDate = todayISO(); save(); render(); }
+  if (s && !isNaN(p) && p >= 0) {
+    s.price = cents(p); s.priceDate = todayISO(); save();
+    if (typeof persistPriceHistory === "function") persistPriceHistory(secId);
+    render();
+  }
 }
 
 function addCategoryPrompt(type) {
@@ -574,8 +579,16 @@ function openManageSecurities() {
 }
 function editSec(id, field, val) {
   const s = getSecurity(id); if (!s) return;
-  if (field === "price") { const p = parseFloat(val); if (!isNaN(p) && p >= 0) s.price = cents(p); }
-  else if (field === "symbol") s.symbol = val.trim().toUpperCase();
-  else s.name = val.trim();
-  s.priceDate = todayISO(); save();
+  if (field === "price") {
+    const p = parseFloat(val);
+    if (!isNaN(p) && p >= 0) {
+      s.price = cents(p); s.priceDate = todayISO();
+      if (typeof persistPriceHistory === "function") persistPriceHistory(id);
+    }
+  } else if (field === "symbol") {
+    s.symbol = val.trim().toUpperCase(); s.priceDate = todayISO();
+  } else {
+    s.name = val.trim(); s.priceDate = todayISO();
+  }
+  save();
 }
