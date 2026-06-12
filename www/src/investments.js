@@ -66,13 +66,21 @@ function viewInvestments() {
   }
 
   // ---- securities & prices (editable, like Categories' manager) ----
+  const _canFetch = (typeof priceFetchAvailable === "function") && priceFetchAvailable();
   const secRows = state.securities.map((s) => {
     const held = invAccts.some((a) => (((state._holdings[a.id] || {})[s.id] || {}).shares || 0) > 1e-9);
+    const tkr = (typeof priceKeyForSecurity === "function") ? priceKeyForSecurity(s) : "";
+    const ov = s.stooqTicker ? esc(s.stooqTicker) : "";
+    const fetchCell = _canFetch
+      ? `<td class="r"><button class="btn ghost sm" title="Fetch ${esc(s.symbol)} from Stooq" onclick="updateOneSymbol('${s.id}')">↻</button></td>`
+      : `<td></td>`;
     return `<tr>
       <td><strong>${esc(s.symbol)}</strong></td>
       <td>${esc(s.name)}</td>
       <td class="r num"><input class="num" style="width:90px;text-align:right" type="number" step="0.01" value="${s.price}" onchange="editSec('${s.id}','price',this.value);render()"></td>
-      <td class="muted" style="font-size:12px">${held ? "held" : "—"}</td></tr>`;
+      <td><input type="text" style="width:110px" value="${ov}" placeholder="${esc(tkr)}" title="Stooq ticker override (default shown as placeholder)" onchange="editSecTicker('${s.id}', this.value)"></td>
+      <td class="muted" style="font-size:12px">${held ? "held" : "—"}</td>
+      ${fetchCell}</tr>`;
   }).join("");
 
   return `
@@ -96,16 +104,15 @@ function viewInvestments() {
   </div>
 
   <div class="panel">
-    <div class="panel-h"><h3>Holdings</h3><span class="muted" style="font-size:12px">Edit a price to revalue everything instantly</span></div>
+    <div class="panel-h"><h3>Securities &amp; prices</h3>
+      <div>
+        ${_canFetch ? `<button class="btn sm" onclick="runPriceUpdate()">Update prices</button>` : ""}
+        <button class="btn ghost sm" onclick="openAddSecurity()">+ Add security</button>
+      </div>
+    </div>
+    ${(typeof priceStatusHtml === "function") ? `<div style="padding:0 16px">${priceStatusHtml()}</div>` : ""}
     <div class="panel-b"><table>
-      <thead><tr><th>Security</th><th class="r">Shares</th><th class="r">Avg cost</th><th class="r">Cost basis</th><th class="r">Last price</th><th class="r">Market value</th><th class="r">Unrealized</th><th class="r">Realized</th></tr></thead>
-      <tbody>${holdRows || `<tr><td colspan="8" class="empty">No holdings yet. Open an investment account and record a Buy.</td></tr>`}</tbody></table></div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-h"><h3>Securities &amp; prices</h3><button class="btn ghost sm" onclick="openAddSecurity()">+ Add security</button></div>
-    <div class="panel-b"><table>
-      <thead><tr><th>Symbol</th><th>Name</th><th class="r">Price</th><th></th></tr></thead>
-      <tbody>${secRows || `<tr><td colspan="4" class="empty">No securities yet.</td></tr>`}</tbody></table></div>
+      <thead><tr><th>Symbol</th><th>Name</th><th class="r">Price</th><th>Stooq ticker</th><th></th><th class="r"></th></tr></thead>
+      <tbody>${secRows || `<tr><td colspan="6" class="empty">No securities yet.</td></tr>`}</tbody></table></div>
   </div>`;
 }

@@ -94,6 +94,9 @@ fn main() {
                 .add_migrations(&db_url, migrations)
                 .build(),
         )
+        // Phase 3: native HTTP client for Stooq fetches (no CORS). The allowed
+        // URL scope is granted in capabilities/default.json.
+        .plugin(tauri_plugin_http::init())
         .invoke_handler(tauri::generate_handler![get_ledger, set_ledger, get_data_dir])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

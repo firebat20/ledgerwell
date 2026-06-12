@@ -9,6 +9,10 @@
     "sql:default",
     "sql:allow-load",
     "sql:allow-execute",
-    "sql:allow-select"
+    "sql:allow-select",
+    {
+      "identifier": "http:default",
+      "allow": [{ "url": "https://stooq.com/*" }]
+    }
   ]
 }

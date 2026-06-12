@@ -61,6 +61,9 @@ const _spark_isoDaysAgo = (n) => {
    no re-key migration is needed. Falls back to the lowercased symbol. */
 function priceKeyForSecurity(sec) {
   if (!sec) return "";
+  // Phase 3: an explicit Stooq-ticker override wins over the default mapping.
+  const ov = sec.stooqTicker && String(sec.stooqTicker).trim();
+  if (ov) return ov.toLowerCase();
   if (typeof stooqSymbol === "function") {
     const k = stooqSymbol(sec.symbol);
     if (k) return k;
