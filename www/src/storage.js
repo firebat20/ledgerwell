@@ -4,6 +4,13 @@
    Claude artifact storage API, then to browser's localStorage,
    then to an in-memory store. This lets the same code run
    inside Tauri, Claude, on GitHub Pages, or from a file:// open.
+
+   IMPORTANT (read-path contract): storeGet resolves to a string
+   when data exists, to null ONLY when there is genuinely no data
+   (first run / no file), and THROWS on a backend error. Callers
+   (engine.js load()) rely on this distinction so that a transient
+   read failure is never mistaken for "empty", which would cause a
+   reseed that overwrites the user's real data.
    ============================================================ */
 const KEY = "LedgerWell:v1";
 const _mem = {};
@@ -23,13 +30,14 @@ const STORAGE_MODE = (function () {
 
 async function storeGet(k) {
   if (STORAGE_MODE === "tauri") {
-    try {
-      if (k === KEY) {
-        return await window.__TAURI__.core.invoke("get_ledger");
-      }
-    } catch (e) {
-      console.error("tauri get failed", e);
+    // Do NOT catch here: a backend error must propagate so the caller can
+    // tell "no file yet" (Ok(None) -> null) apart from "read failed" (throw).
+    // Masking the error as null was a data-loss bug: load() would treat it as
+    // empty, reseed demo data, and save() would clobber the real ledger file.
+    if (k === KEY) {
+      return await window.__TAURI__.core.invoke("get_ledger");
     }
+    return null;
   }
   if (STORAGE_MODE === "artifact") {
     try { const r = await window.storage.get(k); return r ? r.value : null; } catch (e) { return null; }
@@ -42,14 +50,12 @@ async function storeGet(k) {
 
 async function storeSet(k, v) {
   if (STORAGE_MODE === "tauri") {
-    try {
-      if (k === KEY) {
-        await window.__TAURI__.core.invoke("set_ledger", { content: v });
-      }
-      return;
-    } catch (e) {
-      console.error("tauri set failed", e);
+    // Let write errors propagate too, so save() can surface a failure rather
+    // than silently dropping the user's most recent changes.
+    if (k === KEY) {
+      await window.__TAURI__.core.invoke("set_ledger", { content: v });
     }
+    return;
   }
   if (STORAGE_MODE === "artifact") {
     try { await window.storage.set(k, v); } catch (e) { console.error("save failed", e); }

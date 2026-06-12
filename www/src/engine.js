@@ -37,6 +37,7 @@ const INT_CAT_ID = "cat_interest";
 let state = null;
 let view = { type: "dashboard" };
 let openTxn = null; // txn id whose detail is expanded
+let loadError = null; // non-null when the last load() failed to READ persisted data
 
 function blankState() {
   return {
@@ -312,9 +313,15 @@ function serializeState() {
   };
 }
 function save() {
+  // Never write while we're in a read-error state: persisting now would
+  // overwrite the on-disk ledger we failed to read. A successful load()
+  // clears loadError; an explicit user action (import/restore/reset) also
+  // clears it because those rebuild state intentionally.
+  if (loadError) { console.warn("save() suppressed: app is in a load-error state"); return; }
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    storeSet(KEY, JSON.stringify(serializeState()));
+    Promise.resolve(storeSet(KEY, JSON.stringify(serializeState())))
+      .catch((e) => console.error("save failed", e));
   }, 200);
 }
 /* function save() {
@@ -332,16 +339,41 @@ function stripDerived(t) {
 }
 
 async function load() {
-  const raw = await storeGet(KEY);
-  if (!raw) { seedDemo(); save(); return; }
-  try {
-    const parsed = JSON.parse(raw);
-    state = Object.assign(blankState(), parsed);
-    // ensure built-in categories exist
-    for (const bc of [{ id: DIV_CAT_ID, name: "Dividend Income", type: "income" }, { id: INT_CAT_ID, name: "Interest Income", type: "income" }]) {
-      if (!state.categories.find((c) => c.id === bc.id)) state.categories.push(bc);
-    }
-    rebuild();
-  } catch (e) { console.error("load failed, seeding", e); seedDemo(); save(); }
-}
+  loadError = null;
 
+  // STEP 1: read. A thrown error here means the backend FAILED to read (not
+  // that there's no data). In that case we must NOT seed or save, or we would
+  // clobber the user's real, still-on-disk ledger with demo/empty data.
+  let raw;
+  try {
+    raw = await storeGet(KEY);
+  } catch (e) {
+    console.error("load failed to read persisted data; refusing to seed over it", e);
+    loadError = e instanceof Error ? e : new Error(String(e));
+    state = blankState();   // show an empty shell; do NOT call save()
+    return;
+  }
+
+  // STEP 2: genuinely no data (first run / no file) -> seed and persist.
+  if (!raw) { seedDemo(); save(); return; }
+
+  // STEP 3: parse. Corrupt/partial JSON is its own failure mode: keep the bad
+  // bytes on disk (don't overwrite via save()) so the user can recover/back up.
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    console.error("load failed to parse persisted data; leaving the file intact", e);
+    loadError = e instanceof Error ? e : new Error(String(e));
+    state = blankState();   // show an empty shell; do NOT call save()
+    return;
+  }
+
+  // STEP 4: hydrate.
+  state = Object.assign(blankState(), parsed);
+  // ensure built-in categories exist
+  for (const bc of [{ id: DIV_CAT_ID, name: "Dividend Income", type: "income" }, { id: INT_CAT_ID, name: "Interest Income", type: "income" }]) {
+    if (!state.categories.find((c) => c.id === bc.id)) state.categories.push(bc);
+  }
+  rebuild();
+}
