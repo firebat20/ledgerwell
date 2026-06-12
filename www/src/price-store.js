@@ -96,6 +96,14 @@ function SqlitePriceStore() {
       );
       return rows && rows[0] && rows[0].last_date ? rows[0].last_date : null;
     },
+    async lastFetched(ticker) {
+      const d = await db();
+      const rows = await d.select(
+        "SELECT last_fetched FROM price_meta WHERE ticker = $1",
+        [ticker]
+      );
+      return rows && rows[0] && rows[0].last_fetched ? rows[0].last_fetched : null;
+    },
     async upsert(ticker, rows) {
       if (!rows || !rows.length) return;
       const d = await db();

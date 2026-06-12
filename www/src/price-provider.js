@@ -108,7 +108,7 @@ function StooqProvider(httpGet, opts = {}) {
        files) — the way around the per-symbol quota when refreshing many names.
        NOTE: confirm the exact archive URL from https://stooq.com/db/ ; download
        + unzip + extract is wired in the Tauri build (Phase 4). */
-    bulkDailyUsUrl() { return "https://stooq.com/db/d/?b=d_us_txt"; },
+    bulkDailyUsUrl() { return "https://static.stooq.com/db/h/d_us_txt.zip"; },
   };
 }
 
@@ -161,9 +161,11 @@ async function browserHttpGet(url) { const r = await fetch(url); if (!r.ok) thro
 /* ---------- in-memory store for development / tests ---------- */
 function MemoryPriceStore() {
   const db = {}; // ticker -> Map(date -> row)
+  const fetched = {}; // ticker -> ISO timestamp of last upsert
   return {
     async lastDate(t) { const m = db[t]; if (!m || !m.size) return null; return [...m.keys()].sort().pop(); },
-    async upsert(t, rows) { db[t] = db[t] || new Map(); for (const r of rows) db[t].set(r.date, r); },
+    async lastFetched(t) { return fetched[t] || null; },
+    async upsert(t, rows) { db[t] = db[t] || new Map(); for (const r of rows) db[t].set(r.date, r); fetched[t] = new Date().toISOString(); },
     async range(t, from, to) { const m = db[t]; if (!m) return []; return [...m.values()].filter((r) => (!from || r.date >= from) && (!to || r.date <= to)).sort((a, b) => (a.date < b.date ? -1 : 1)); },
     _db: db,
   };

@@ -5,4 +5,5 @@ commands.allow = [
   "get_ledger",
   "set_ledger",
   "get_data_dir"
+  "bulk_fetch_us"
 ]

@@ -17,6 +17,7 @@ function viewInvestments() {
   if (!invAccts.length) {
     return `
     <div class="ph"><div><h2>Investments</h2><div class="sub">Holdings, FIFO cost basis, and gains across every investment account</div></div></div>
+    ${(typeof renderSplitSuggestions === "function") ? renderSplitSuggestions() : ""}
     <div class="panel"><div class="panel-b"><div class="empty">
       No investment accounts yet.<br><br>
       <button class="btn" onclick="openAddAccount()">+ Add investment account</button>
@@ -67,6 +68,7 @@ function viewInvestments() {
 
   // ---- securities & prices (editable, like Categories' manager) ----
   const _canFetch = (typeof priceFetchAvailable === "function") && priceFetchAvailable();
+  const _canBulk = (typeof bulkUpdateAvailable === "function") && bulkUpdateAvailable();
   const secRows = state.securities.map((s) => {
     const held = invAccts.some((a) => (((state._holdings[a.id] || {})[s.id] || {}).shares || 0) > 1e-9);
     const tkr = (typeof priceKeyForSecurity === "function") ? priceKeyForSecurity(s) : "";
@@ -107,6 +109,8 @@ function viewInvestments() {
     <div class="panel-h"><h3>Securities &amp; prices</h3>
       <div>
         ${_canFetch ? `<button class="btn sm" onclick="runPriceUpdate()">Update prices</button>` : ""}
+        ${_canBulk ? `<button class="btn ghost sm" title="Download Stooq's US end-of-day archive in one request — sidesteps the per-symbol daily limit" onclick="runBulkUpdate()">Full refresh</button>` : ""}
+        ${(typeof splitDetectAvailable === "function" && splitDetectAvailable()) ? `<button class="btn ghost sm" onclick="refreshSplitDetection()">Check for splits</button>` : ""}
         <button class="btn ghost sm" onclick="openAddSecurity()">+ Add security</button>
       </div>
     </div>

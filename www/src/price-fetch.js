@@ -129,10 +129,11 @@ async function _afterPriceUpdate(summary, oneLabel) {
   if (summary.errors && summary.errors.length) parts.push(`${summary.errors.length} error(s)`);
   let msg = (oneLabel ? oneLabel + " — " : "") + parts.join(" · ");
   if (summary.quota) {
-    msg += " — Stooq daily limit hit; use the bulk archive (Phase 4) for a full refresh.";
+    msg += " — Stooq daily limit hit; use “Full refresh” to pull the bulk archive instead.";
   }
   const hadFailure = !!(summary.errors && summary.errors.length) && !summary.updated;
   setPriceStatus(msg, hadFailure || summary.quota);
+  if (typeof refreshSplitDetection === "function") refreshSplitDetection();
 }
 
 /* ---------- "Update prices" — loop all securities ---------- */

@@ -172,7 +172,13 @@ function dividend(accId, secId, date, amount) {
     inv: { action: "Div", accountId: accId, securityId: secId, amount: cents(amount) },
   });
 }
-
+/* security-level stock split: quantity-only, applied to every account in rebuild() */
+function splitSecurity(secId, date, ratio) {
+  state.transactions.push({
+    id: uid("txn"), date, payee: "", memo: "", cleared: true, seq: nextSeq(),
+    inv: { action: "Split", securityId: secId, ratio: round6(ratio) },
+  });
+}
 function deleteTxn(id) {
   const t = state.transactions.find((x) => x.id === id);
   if (t && t.payee === "Opening Balance") { /* allow */ }
@@ -196,6 +202,25 @@ function rebuild() {
 
   for (const t of invTxns) {
     const inv = t.inv;
+        // Split: quantity-only corporate action. No cash, no cost change. Scale
+    // every account's lots and holdings for this security in place — appending
+    // a separate zero-cost lot would corrupt FIFO cost relief on later sales.
+    if (inv.action === "Split") {
+      t.postings = [];
+      const r = Number(inv.ratio) || 1;
+      if (r > 0 && r !== 1) {
+        for (const acc of state.accounts) {
+          const llk = acc.id + "|" + inv.securityId;
+          if (state._lots[llk]) for (const lot of state._lots[llk]) lot.remaining = round6(lot.remaining * r);
+          const hh = state._holdings[acc.id];
+          if (hh && hh[inv.securityId]) hh[inv.securityId].shares = round6(hh[inv.securityId].shares * r);
+        }
+      }
+      continue;
+    }
+    
+    const cashKey = "acc:" + inv.accountId + ":cash";
+    // …existing Buy / Sell / Div code unchanged…
     const cashKey = "acc:" + inv.accountId + ":cash";
     const secKey = "acc:" + inv.accountId + ":sec";
     const lk = inv.accountId + "|" + inv.securityId;

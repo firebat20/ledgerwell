@@ -300,10 +300,30 @@ function holdingsTab(acc) {
 }
 
 function invTxnsTab(acc) {
-  const rows = registerRows(acc).reverse();
+  const cashRows = registerRows(acc).map((r) => ({ t: r.t, kind: "cash", amount: r.amount, balance: r.balance }));
+  const held = state._holdings[acc.id] || {};
+  const splitRows = state.transactions
+    .filter((t) => t.inv && t.inv.action === "Split" && held[t.inv.securityId])
+    .map((t) => ({ t, kind: "split", amount: 0, balance: null }));
+  const all = cashRows.concat(splitRows).sort((a, b) =>
+    a.t.date !== b.t.date ? (a.t.date < b.t.date ? 1 : -1) : ((b.t.seq || 0) - (a.t.seq || 0)));
+
   let body = "";
-  for (const r of rows) {
+  for (const r of all) {
     const t = r.t; const isOpen = openTxn === t.id;
+    if (r.kind === "split") {
+      const sec = getSecurity(t.inv.securityId);
+      const ratio = Number(t.inv.ratio) || 1;
+      const label = ratio >= 1 ? `${fmtShares(ratio)}:1 split` : `1:${fmtShares(1 / ratio)} reverse split`;
+      body += `<tr class="clk" onclick="toggleDetail('${t.id}')">
+        <td class="num muted">${t.date}</td>
+        <td><span class="pill">Split</span></td>
+        <td>${esc(sec ? sec.symbol : "")} · ${label}</td>
+        <td class="r num"></td><td class="r num"></td>
+        <td class="r num muted">—</td></tr>`;
+      if (isOpen) body += `<tr class="detail"><td colspan="6">${txnDetail(t)}</td></tr>`;
+      continue;
+    }
     let desc = "", pillC = "", action = "—";
     if (t.inv) {
       const sec = getSecurity(t.inv.securityId);
@@ -325,7 +345,7 @@ function invTxnsTab(acc) {
   return `
   <div class="entry">
     <div class="row">
-      <div class="fld"><label>Action</label><select id="inv-action" onchange="onInvAction()"><option>Buy</option><option>Sell</option><option value="Div">Dividend</option></select></div>
+      <div class="fld"><label>Action</label><select id="inv-action" onchange="onInvAction()"><option>Buy</option><option>Sell</option><option value="Div">Dividend</option><option value="Split">Split</option></select></div>
       <div class="fld"><label>Date</label><input id="inv-date" type="date" value="${todayISO()}"></div>
       <div class="fld" style="min-width:190px"><label>Security</label>
         <select id="inv-sec">${secOpts || ""}<option value="__new">+ Add new security…</option></select></div>
@@ -333,6 +353,11 @@ function invTxnsTab(acc) {
       <div class="fld amt" id="fld-price"><label>Price</label><input id="inv-price" type="number" step="0.01" placeholder="0.00" style="width:90px"></div>
       <div class="fld amt" id="fld-fee"><label>Fee</label><input id="inv-fee" type="number" step="0.01" placeholder="0.00" style="width:80px"></div>
       <div class="fld amt" id="fld-amount" style="display:none"><label>Amount</label><input id="inv-amount" type="number" step="0.01" placeholder="0.00" style="width:100px"></div>
+      <div class="fld amt" id="fld-ratio" style="display:none"><label>Ratio (new:old)</label>
+        <div style="display:flex;gap:5px;align-items:center">
+          <input id="inv-rnew" type="number" step="1" placeholder="10" style="width:52px">
+          <span class="muted">:</span>
+          <input id="inv-rold" type="number" step="1" placeholder="1" style="width:52px"></div></div>
       <button class="btn" onclick="submitInv('${acc.id}')">Add</button>
     </div>
     <div class="muted" style="font-size:12px;margin-top:7px" id="inv-hint"></div>
@@ -345,6 +370,16 @@ function invTxnsTab(acc) {
 
 /* double-entry detail for any transaction */
 function txnDetail(t) {
+  if (t.inv && t.inv.action === "Split") {
+    const sec = getSecurity(t.inv.securityId);
+    const ratio = Number(t.inv.ratio) || 1;
+    const label = ratio >= 1 ? `${fmtShares(ratio)}:1` : `1:${fmtShares(1 / ratio)} (reverse)`;
+    return `<div class="detail-in">
+      <div class="ttl">Stock split · quantity-only (no cash, cost basis unchanged)</div>
+      <div style="font-size:13px">${esc(sec ? sec.symbol + " — " + sec.name : "")}: shares ×${fmtShares(ratio)} (${label}) on ${t.date}, applied to every account holding it.</div>
+      <div style="margin-top:10px"><button class="btn danger sm" onclick="if(confirm('Delete this split? Share counts will revert.'))deleteTxn('${t.id}')">Delete split</button></div>
+    </div>`;
+  }
   const keyName = (k) => {
     if (k === "sys:opening") return "Opening Balance Equity";
     if (k === "sys:realized") return "Realized Capital Gains";
@@ -412,7 +447,12 @@ function viewJournal() {
   let totalDeb = 0, totalCre = 0, body = "";
   for (const t of txns) {
     const label = t.inv ? (t.inv.action === "Div" ? "Dividend" : t.inv.action + " " + (getSecurity(t.inv.securityId) || {}).symbol) : (t.payee || "—");
-    (t.postings || []).forEach((p, i) => {
+    const posts = t.postings || [];
+    if (!posts.length) {
+      body += `<tr><td class="num muted">${t.date}</td><td>${esc(label)}</td><td class="muted">— no cash effect —</td><td class="r num"></td><td class="r num"></td></tr>`;
+      continue;
+    }
+    posts.forEach((p, i) => {
       if (p.amount > 0) totalDeb += p.amount; else totalCre += -p.amount;
       body += `<tr>
         <td class="num muted">${i === 0 ? t.date : ""}</td>
@@ -455,15 +495,17 @@ function submitBank(accId) {
 
 function onInvAction() {
   const a = $("inv-action").value;
-  const isDiv = a === "Div";
-  $("fld-shares").style.display = isDiv ? "none" : "";
-  $("fld-price").style.display = isDiv ? "none" : "";
-  $("fld-fee").style.display = isDiv ? "none" : "";
+  const isDiv = a === "Div", isSplit = a === "Split";
+  $("fld-shares").style.display = (isDiv || isSplit) ? "none" : "";
+  $("fld-price").style.display = (isDiv || isSplit) ? "none" : "";
+  $("fld-fee").style.display = (isDiv || isSplit) ? "none" : "";
   $("fld-amount").style.display = isDiv ? "" : "none";
+  const rf = $("fld-ratio"); if (rf) rf.style.display = isSplit ? "" : "none";
   const hint = $("inv-hint");
   if (hint) hint.textContent = a === "Buy" ? "Buy adds a lot; fee is added to cost basis."
     : a === "Sell" ? "Sell relieves shares FIFO (oldest lots first) and books realized gain/loss."
-      : "Dividend records cash income against the security.";
+    : a === "Split" ? "Split scales your share count for this security across all accounts; cost basis is unchanged."
+    : "Dividend records cash income against the security.";
 }
 
 function submitInv(accId) {
@@ -471,6 +513,13 @@ function submitInv(accId) {
   const date = $("inv-date").value || todayISO();
   const secVal = $("inv-sec").value;
   if (secVal === "__new" || !secVal) { openAddSecurity(); return; }
+  if (action === "Split") {
+    const nw = parseFloat($("inv-rnew").value), od = parseFloat($("inv-rold").value);
+    if (!nw || nw <= 0 || !od || od <= 0) { alert("Enter a split ratio, e.g. 10 : 1."); return; }
+    splitSecurity(secVal, date, nw / od);
+    rebuild(); save(); render();
+    return;
+  }
   if (action === "Div") {
     const amt = parseFloat($("inv-amount").value);
     if (!amt || amt <= 0) { alert("Enter a dividend amount."); return; }

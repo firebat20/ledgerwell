@@ -26,11 +26,15 @@
 <script src="src/price-provider.js"></script>
 <script src="src/price-store.js"></script>
 <script src="src/price-fetch.js"></script>
+<script src="src/price-bulk.js"></script>
+<script src="src/price-splits.js"></script>
 <script>
   (async function init() {
     await load();
     try { await hydratePricesFromStore(); } catch (e) { console.error(e); }
     render();
+    try { if (typeof maybeAutoRefreshPrices === "function") await maybeAutoRefreshPrices(); }
+    catch (e) { console.error(e); }
   })();
 </script>
 </body>
