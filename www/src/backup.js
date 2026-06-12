@@ -17,7 +17,7 @@ const BACKUP_SCHEMA = 1;
 /* ---------- export ---------- */
 function exportEnvelope() {
   return {
-    app: "ledgerwell",
+    app: "LedgerWell",
     schema: BACKUP_SCHEMA,
     exportedAt: new Date().toISOString(),
     state: serializeState(),          // same shape storage.js persists
@@ -30,7 +30,7 @@ function exportData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `ledgerwell-backup-${todayISO()}.json`;
+  a.download = `LedgerWell-backup-${todayISO()}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -42,7 +42,7 @@ function exportData() {
    (e.g. a raw localStorage value), so restores are forgiving. */
 function unwrapBackup(parsed) {
   if (parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      && parsed.state && typeof parsed.state === "object" && parsed.accounts === undefined) {
+    && parsed.state && typeof parsed.state === "object" && parsed.accounts === undefined) {
     return parsed.state;
   }
   return parsed;
@@ -58,7 +58,7 @@ function readBackup(text) {
 
   const raw = unwrapBackup(parsed);
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return { ok: false, error: "This file isn't a Ledgerwell backup." };
+    return { ok: false, error: "This file isn't a LedgerWell backup." };
   }
   for (const k of ["accounts", "categories", "securities", "transactions"]) {
     if (raw[k] !== undefined && !Array.isArray(raw[k])) {
@@ -125,13 +125,13 @@ function applyBackup(candidate) {
 /* ---------- import: UI ---------- */
 function openImportData() {
   openModal(`
-    <div class="modal-h"><h3>Import data</h3><p>Restore a Ledgerwell backup (.json). This replaces everything currently in the app.</p></div>
+    <div class="modal-h"><h3>Import data</h3><p>Restore a LedgerWell backup (.json). This replaces everything currently in the app.</p></div>
     <div class="modal-b">
       <div class="banner">Importing <strong>replaces all current data</strong>. Use “Export data” first if you want to keep a copy.</div>
       <div class="fld"><label>Backup file</label>
         <input id="bk-file" type="file" accept=".json,application/json" class="full"></div>
       <div class="fld" style="margin-top:13px"><label>…or paste backup JSON</label>
-        <textarea id="bk-text" class="full" rows="7" placeholder='{ "app": "ledgerwell", "schema": 1, "state": { … } }' style="padding:9px 11px;border:1px solid var(--line-strong);border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:12.5px"></textarea></div>
+        <textarea id="bk-text" class="full" rows="7" placeholder='{ "app": "LedgerWell", "schema": 1, "state": { … } }' style="padding:9px 11px;border:1px solid var(--line-strong);border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:12.5px"></textarea></div>
       <div id="bk-msg" style="font-size:12.5px;margin-top:8px;min-height:1em" class="muted"></div>
     </div>
     <div class="modal-f">

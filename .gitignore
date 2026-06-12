@@ -12,3 +12,7 @@ Thumbs.db
 # local env
 .env
 .env.local
+
+# Rust & Tauri specific
+src-tauri/target/
+src-tauri/gen/

@@ -1,4 +1,4 @@
-# Ledgerwell
+# LedgerWell
 
 A light, Quicken-style personal finance app built on a real **double-entry ledger**.
 Every transaction posts balanced entries (debits = credits), which keeps the books

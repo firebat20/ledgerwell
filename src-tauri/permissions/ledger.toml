@@ -1,0 +1,7 @@
+[[permission]]
+identifier = "allow-ledger-commands"
+description = "Allows reading and writing the ledger file"
+commands.allow = [
+  "get_ledger",
+  "set_ledger"
+]

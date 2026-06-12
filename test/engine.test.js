@@ -8,12 +8,14 @@ const fs = require("fs");
 const path = require("path");
 
 let pass = 0, fail = 0;
-function ok(name, cond) { cond ? (pass++, console.log("  ok  - " + name))
-                               : (fail++, console.log("  FAIL- " + name)); }
+function ok(name, cond) {
+  cond ? (pass++, console.log("  ok  - " + name))
+    : (fail++, console.log("  FAIL- " + name));
+}
 
-const src = fs.readFileSync(path.join(__dirname, "../src/storage.js"), "utf8")
-          + "\n" + fs.readFileSync(path.join(__dirname, "../src/engine.js"), "utf8")
-          + "\n" + fs.readFileSync(path.join(__dirname, "../src/backup.js"), "utf8");
+const src = fs.readFileSync(path.join(__dirname, "../www/src/storage.js"), "utf8")
+  + "\n" + fs.readFileSync(path.join(__dirname, "../www/src/engine.js"), "utf8")
+  + "\n" + fs.readFileSync(path.join(__dirname, "../www/src/backup.js"), "utf8");
 
 const ctx = {};
 src && (function () {
@@ -25,7 +27,7 @@ src && (function () {
 })();
 
 const { seedDemo, cents, netWorth, accountMarketValue, getSecurity, balanceOfKey, rebuild,
-        serializeState, exportEnvelope, readBackup, applyBackup } = ctx;
+  serializeState, exportEnvelope, readBackup, applyBackup } = ctx;
 seedDemo();
 const state = ctx.state();
 
@@ -61,18 +63,18 @@ const secBefore = st.securities.length;
 
 // 4. envelope has app + schema + state and a serialized (derived-stripped) ledger
 const env = exportEnvelope();
-ok("export envelope is tagged app=ledgerwell, schema=1", env.app === "ledgerwell" && env.schema === 1);
+ok("export envelope is tagged app=LedgerWell, schema=1", env.app === "LedgerWell" && env.schema === 1);
 ok("export envelope carries a state object", env.state && Array.isArray(env.state.transactions));
 ok("export strips derived investment postings",
-   env.state.transactions.filter(t => t.inv && t.inv.action !== "Div").every(t => t.postings === undefined));
+  env.state.transactions.filter(t => t.inv && t.inv.action !== "Div").every(t => t.postings === undefined));
 
 // 5. a full export -> readBackup -> applyBackup restores everything
 const res = readBackup(JSON.stringify(env));
 ok("readBackup accepts a valid envelope", res.ok === true);
 ok("readBackup summary counts match source",
-   res.ok && res.summary.transactions === txnBefore
-          && res.summary.accounts === acctBefore
-          && res.summary.securities === secBefore);
+  res.ok && res.summary.transactions === txnBefore
+  && res.summary.accounts === acctBefore
+  && res.summary.securities === secBefore);
 ok("readBackup does not mutate live state before commit", ctx.state() === st);
 
 if (res.ok) applyBackup(res.state);

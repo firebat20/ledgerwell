@@ -45,7 +45,7 @@ function renderSidebar() {
   const ni = (t, ic, label) => `<div class="navitem ${view.type === t ? "active" : ""}" onclick="nav({type:'${t}'})"><span class="ic">${ic}</span>${label}</div>`;
 
   $("side").innerHTML = `
-    <div class="brand"><span class="mark"></span><div><h1>Ledgerwell</h1><small>Double-entry ledger</small></div></div>
+    <div class="brand"><span class="mark"></span><div><h1>LedgerWell</h1><small>Double-entry ledger</small></div></div>
     <div class="nw"><div class="lbl">Net worth</div><div class="val num">${fmtMoney(netWorth())}</div></div>
     <div class="navsec">
       ${ni("dashboard", "▦", "Dashboard")}
@@ -57,7 +57,7 @@ function renderSidebar() {
     <button class="addbtn" onclick="openAddAccount()">+ Add account</button>
     <button class="addbtn" onclick="openImport()">⇩ Import CSV</button>
     <div class="sidefoot">
-      ${STORAGE_MODE === "memory" ? "In-memory session only — changes will not persist." : (STORAGE_MODE === "artifact" ? "Saved automatically to this device." : "Saved automatically in this browser.")}
+      ${STORAGE_MODE === "tauri" ? "Saved automatically to local file." : (STORAGE_MODE === "memory" ? "In-memory session only — changes will not persist." : (STORAGE_MODE === "artifact" ? "Saved automatically to this device." : "Saved automatically in this browser."))}
       <br><button onclick="exportData()">Export data</button> · <button onclick="openImportData()">Import data</button>
       <br><button onclick="resetDemo()">Reset to demo data</button>
     </div>`;
@@ -429,7 +429,7 @@ function onInvAction() {
   const hint = $("inv-hint");
   if (hint) hint.textContent = a === "Buy" ? "Buy adds a lot; fee is added to cost basis."
     : a === "Sell" ? "Sell relieves shares FIFO (oldest lots first) and books realized gain/loss."
-    : "Dividend records cash income against the security.";
+      : "Dividend records cash income against the security.";
 }
 
 function submitInv(accId) {

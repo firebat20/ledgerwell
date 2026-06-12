@@ -1,6 +1,6 @@
 # Migration: static web app → Tauri desktop app with price history
 
-This plan moves Ledgerwell from a static, open-`index.html` web app to a Tauri
+This plan moves LedgerWell from a static, open-`index.html` web app to a Tauri
 desktop application that fetches and stores daily price history. It is written to
 be executed in **phases that each ship on their own**, so the app is never broken
 for long and every step is reversible.
@@ -120,7 +120,7 @@ Goal: the desktop app behaves *identically* to the browser version.
   migration above (`MigrationKind::Up`, version 1). Grant `sql:default` (plus
   `sql:allow-execute`/`allow-select` as needed) in `capabilities/default.json`.
 - Add `src/price-store.js` with a `SqlitePriceStore` implementing the contract via
-  `Database.load("sqlite:ledgerwell.db")`.
+  `Database.load("sqlite:LedgerWell.db")`.
 - Move manual price entry (the existing price inputs in the Investments view) to
   read/write SQLite via the store. No network yet.
 - Wire `store.range()` into a first price-history chart to prove the read path.
