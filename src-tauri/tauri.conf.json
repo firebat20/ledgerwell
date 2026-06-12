@@ -23,11 +23,7 @@
       "csp": null
     }
   },
-    "plugins": {
-    "sql": {
-      "preload": ["sqlite:LedgerWell.db"]
-    }
-  },
+    "plugins": {},
   "bundle": {
     "active": true,
     "targets": "all",

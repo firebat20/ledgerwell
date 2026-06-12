@@ -1,18 +1,46 @@
-# dependencies / build
+# ── Dependencies ──────────────────────────────────────────────
 node_modules/
+
+# ── Build output ──────────────────────────────────────────────
 dist/
-*.log
+build/
+out/
 
-# editor / OS
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-
-# local env
-.env
-.env.local
-
-# Rust & Tauri specific
+# ── Rust & Tauri ──────────────────────────────────────────────
 src-tauri/target/
 src-tauri/gen/
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Environment variables ────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Editor / IDE ──────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# ── OS generated ──────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ── Test / Coverage ──────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ── AI / tooling ─────────────────────────────────────────────
+.gemini/

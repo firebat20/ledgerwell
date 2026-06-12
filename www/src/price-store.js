@@ -28,7 +28,27 @@
      range(ticker, fromISO, toISO) -> rows ascending by date
    ============================================================ */
 
-const PRICE_DB_URL = "sqlite:LedgerWell.db";
+const PRICE_DB_FILENAME = "LedgerWell.db";
+let _resolvedDbUrl = null;
+
+/// Resolve the absolute sqlite: URL for the price database.
+/// The Rust backend stores the DB next to the executable; we query for
+/// that directory once and cache the result.
+async function _resolvePriceDbUrl() {
+  if (_resolvedDbUrl) return _resolvedDbUrl;
+  try {
+    const dir = await window.__TAURI__.core.invoke("get_data_dir");
+    // Use forward slashes for the sqlite URI even on Windows
+    const sep = dir.includes("\\") ? "\\" : "/";
+    const normalized = dir.endsWith(sep) ? dir : dir + sep;
+    _resolvedDbUrl = "sqlite:" + normalized + PRICE_DB_FILENAME;
+  } catch (_e) {
+    // Fallback: let the plugin resolve relative to its default location
+    _resolvedDbUrl = "sqlite:" + PRICE_DB_FILENAME;
+  }
+  return _resolvedDbUrl;
+}
+
 const _spark_isoDaysAgo = (n) => {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() - n);
@@ -60,7 +80,8 @@ function SqlitePriceStore() {
     if (!Database || typeof Database.load !== "function") {
       throw new Error("Tauri sql plugin not available on window.__TAURI__.sql");
     }
-    _db = await Database.load(PRICE_DB_URL); // migrations (Rust side) apply here / at preload
+    const dbUrl = await _resolvePriceDbUrl();
+    _db = await Database.load(dbUrl); // migrations (Rust side) apply here / at preload
     return _db;
   }
   return {

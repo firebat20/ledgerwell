@@ -1,7 +1,8 @@
 [[permission]]
 identifier = "allow-ledger-commands"
-description = "Allows reading and writing the ledger file"
+description = "Allows reading and writing the ledger file and querying the data directory"
 commands.allow = [
   "get_ledger",
-  "set_ledger"
+  "set_ledger",
+  "get_data_dir"
 ]
