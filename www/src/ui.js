@@ -12,14 +12,47 @@ function nav(v) { view = v; openTxn = null; render(); }
 function render() {
   renderSidebar();
   const m = $("main");
-  if (view.type === "dashboard") m.innerHTML = viewDashboard();
-  else if (view.type === "account") m.innerHTML = viewAccount(getAccount(view.id));
-  else if (view.type === "categories") m.innerHTML = viewCategories();
-  else if (view.type === "investments") m.innerHTML = viewInvestments();
-  else if (view.type === "journal") m.innerHTML = viewJournal();
-  else m.innerHTML = viewDashboard();
+  let html = "";
+  if (view.type === "dashboard") html = viewDashboard();
+  else if (view.type === "account") html = viewAccount(getAccount(view.id));
+  else if (view.type === "categories") html = viewCategories();
+  else if (view.type === "investments") html = viewInvestments();
+  else if (view.type === "journal") html = viewJournal();
+  else html = viewDashboard();
+  // A failed *read/parse* on load leaves state empty and save() suppressed.
+  // Surface that prominently so the user doesn't mistake the empty app for
+  // real (lost) data and start editing over a file that's actually intact.
+  m.innerHTML = loadErrorBanner() + html;
   // restore entry-form action visibility if present
   const sel = $("inv-action"); if (sel) onInvAction();
+}
+
+/* ---------- load-error banner ---------- */
+function loadErrorBanner() {
+  if (typeof loadError === "undefined" || !loadError) return "";
+  const msg = esc(loadError.message || String(loadError));
+  return `<div class="banner" style="background:var(--neg-tint);border-color:#F3D2CD;color:var(--neg)">
+    <strong>Your data couldn't be loaded.</strong> Your saved file was left untouched, and
+    automatic saving is paused so nothing overwrites it. Don't add or edit transactions until
+    this is resolved — those changes won't be saved.
+    <div style="margin-top:8px;display:flex;gap:9px;flex-wrap:wrap;align-items:center">
+      <button class="btn sm" onclick="retryLoad()">Try loading again</button>
+      <button class="btn ghost sm" onclick="openImportData()">Restore from a backup…</button>
+      <span class="muted" style="font-size:11.5px">Details: ${msg}</span>
+    </div>
+  </div>`;
+}
+
+/* re-attempt load(); on success the banner clears and the data appears */
+async function retryLoad() {
+  await load();
+  if (typeof loadError !== "undefined" && loadError) {
+    // still failing — keep the user where they are, banner stays
+    render();
+    return;
+  }
+  view = { type: "dashboard" };
+  render();
 }
 
 /* ---------- sidebar ---------- */
@@ -476,6 +509,9 @@ function delCategory(id) {
 
 function resetDemo() {
   if (!confirm("Replace all data with the demo dataset?")) return;
+  // An explicit reset intentionally builds fresh state, so clear any prior
+  // load-error gate that would otherwise suppress the save.
+  if (typeof loadError !== "undefined") loadError = null;
   seedDemo(); save(); view = { type: "dashboard" }; render();
 }
 

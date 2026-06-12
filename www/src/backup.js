@@ -117,6 +117,7 @@ function readBackup(text) {
 }
 
 function applyBackup(candidate) {
+  loadError = null;
   state = candidate;
   rebuild();
   save();
