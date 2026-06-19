@@ -104,15 +104,15 @@ function SqlitePriceStore() {
       );
       return rows && rows[0] && rows[0].last_fetched ? rows[0].last_fetched : null;
     },
-async markFetched(ticker) {
-  const d = await db();
-  await d.execute(
-    "INSERT INTO price_meta (ticker,last_date,last_fetched) VALUES ($1,NULL,$2) " +
-    "ON CONFLICT(ticker) DO UPDATE SET " +
-    "last_fetched = excluded.last_fetched",
-    [ticker, new Date().toISOString()]
-  );
-},
+    async markFetched(ticker) {
+      const d = await db();
+      await d.execute(
+        "INSERT INTO price_meta (ticker,last_date,last_fetched) VALUES ($1,NULL,$2) " +
+        "ON CONFLICT(ticker) DO UPDATE SET " +
+        "last_fetched = excluded.last_fetched",
+        [ticker, new Date().toISOString()]
+      );
+    },
     async upsert(ticker, rows) {
       if (!rows || !rows.length) return;
       const d = await db();

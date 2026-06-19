@@ -220,8 +220,6 @@ function rebuild() {
     }
     
     const cashKey = "acc:" + inv.accountId + ":cash";
-    // …existing Buy / Sell / Div code unchanged…
-    const cashKey = "acc:" + inv.accountId + ":cash";
     const secKey = "acc:" + inv.accountId + ":sec";
     const lk = inv.accountId + "|" + inv.securityId;
     if (!state._lots[lk]) state._lots[lk] = [];

@@ -147,7 +147,17 @@ async function maybeAutoRefreshPrices() {
 
   if (!securities.length) return;
 
-
+  // Newest successful fetch across all held tickers.
+  let newest = null;
+  const seen = new Set();
+  for (const s of securities) {
+    const key = (typeof priceKeyForSecurity === "function")
+      ? priceKeyForSecurity(s) : String(s.symbol || "").trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    try { const lf = await store.lastFetched(key); if (lf && (!newest || lf > newest)) newest = lf; }
+    catch (e) { /* treat as never-fetched */ }
+  }
 
   const today = new Date().toISOString().slice(0, 10);
   if (newest && String(newest).slice(0, 10) >= today) return; // already refreshed today
