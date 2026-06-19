@@ -136,8 +136,18 @@ async function updatePrices({ provider, store, securities, defaultFrom, throttle
     try {
       // don't trust the source to honor the date window — keep only new dates
       const rows = (await provider.fetchDaily(sec.symbol, from, today)).filter((r) => r.date >= from);
-      if (rows.length) { await store.upsert(ticker, rows); summary.updated++; summary.rowsAdded += rows.length; report({ symbol: sec.symbol, status: "updated", rows: rows.length }); }
-      else { summary.skipped++; report({ symbol: sec.symbol, status: "none" }); }
+      if (rows.length) {
+  await store.upsert(ticker, rows);
+  summary.updated++;
+  summary.rowsAdded += rows.length;
+  report({ symbol: sec.symbol, status: "updated", rows: rows.length });
+} else {
+  if (typeof store.markFetched === "function") {
+    await store.markFetched(ticker);
+  }
+  summary.skipped++;
+  report({ symbol: sec.symbol, status: "none" });
+}
     } catch (e) {
       if (e.code === "QUOTA") {
         summary.quota = true;
