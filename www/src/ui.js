@@ -17,6 +17,7 @@ function render() {
   else if (view.type === "account") html = viewAccount(getAccount(view.id));
   else if (view.type === "categories") html = viewCategories();
   else if (view.type === "investments") html = viewInvestments();
+  else if (view.type === "reports") html = (typeof viewReports === "function") ? viewReports() : viewDashboard();
   else if (view.type === "journal") html = viewJournal();
   else html = viewDashboard();
   // A failed *read/parse* on load leaves state empty and save() suppressed.
@@ -26,6 +27,7 @@ function render() {
   // restore entry-form action visibility if present
   const sel = $("inv-action"); if (sel) onInvAction();
   if (view.type === "investments" && typeof drawInvestmentSparklines === "function") drawInvestmentSparklines();
+  if (view.type === "reports" && typeof afterReportsRender === "function") afterReportsRender();
 }
 
 /* ---------- load-error banner ---------- */
@@ -85,6 +87,7 @@ function renderSidebar() {
       ${ni("dashboard", "▦", "Dashboard")}
       ${ni("categories", "☰", "Categories")}
       ${ni("investments", "↗", "Investments")}
+      ${ni("reports", "◔", "Reports")}
       ${ni("journal", "⇄", "Journal")}
     </div>
     ${acctHtml}
